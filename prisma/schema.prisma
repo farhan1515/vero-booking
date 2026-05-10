@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Physician {
+  id                  String    @id @default(cuid())
+  name                String
+  specialty           String
+  credentials         String
+  bio                 String
+  avatarUrl           String?
+  isAcceptingPatients Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  slots    Slot[]
+  bookings Booking[]
+
+  @@index([specialty])
+}
+
+model Slot {
+  id          String   @id @default(cuid())
+  physicianId String
+  startTime   DateTime
+  endTime     DateTime
+  isBooked    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  physician Physician @relation(fields: [physicianId], references: [id])
+  booking   Booking?
+
+  @@index([physicianId, isBooked])
+  @@index([startTime])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  physicianId String
+  slotId      String        @unique
+
+  // Patient
+  patientName        String
+  patientEmail       String
+  patientPhone       String
+  patientDateOfBirth DateTime
+
+  // Appointment
+  chiefComplaint         String
+  chiefComplaintCategory String
+  additionalNotes        String?
+
+  // Status
+  status BookingStatus @default(PENDING)
+
+  // AI fields (populated asynchronously after booking)
+  urgencyLevel    String?
+  intakeSummary   String?
+  icdSuggestions  String?   // JSON-stringified ICD10Suggestion[]
+  aiProcessedAt   DateTime?
+
+  // Soft delete
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  physician  Physician         @relation(fields: [physicianId], references: [id])
+  slot       Slot              @relation(fields: [slotId], references: [id])
+  statusLogs BookingStatusLog[]
+
+  @@index([status])
+  @@index([physicianId])
+  @@index([createdAt])
+}
+
+model BookingStatusLog {
+  id             String   @id @default(cuid())
+  bookingId      String
+  previousStatus String
+  newStatus      String
+  changedAt      DateTime @default(now())
+  changedBy      String   @default("system")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+}
