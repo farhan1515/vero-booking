@@ -17,6 +17,7 @@ import { InsightsPanel } from "@/components/admin/InsightsPanel"
 import { EvidencePanel } from "@/components/admin/EvidencePanel"
 import { ClinicalChat } from "@/components/admin/ClinicalChat"
 import { EncounterRecorder } from "@/components/admin/EncounterRecorder"
+import { ActivityLog } from "@/components/admin/ActivityLog"
 import { BookingStatus } from "@/types"
 import type { BookingWithDetails } from "@/types"
 import type { ClinicalInsights } from "@/app/api/ai/insights/route"
@@ -30,7 +31,7 @@ interface BookingDetailModalProps {
   onBookingRefresh: (booking: BookingWithDetails) => void
 }
 
-type RightTab = "summary" | "insights" | "evidence" | "chat"
+type RightTab = "summary" | "insights" | "evidence" | "chat" | "activity"
 
 function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-CA", {
@@ -84,6 +85,7 @@ const RIGHT_TABS: { id: RightTab; label: string }[] = [
   { id: "insights", label: "Insights" },
   { id: "evidence", label: "Evidence" },
   { id: "chat", label: "Chat" },
+  { id: "activity", label: "Activity" },
 ]
 
 export function BookingDetailModal({ booking, onClose, onStatusUpdate, onBookingRefresh }: BookingDetailModalProps) {
@@ -466,6 +468,11 @@ export function BookingDetailModal({ booking, onClose, onStatusUpdate, onBooking
                 {/* Chat tab */}
                 {rightTab === "chat" && (
                   <ClinicalChat booking={booking} />
+                )}
+
+                {/* Activity tab */}
+                {rightTab === "activity" && (
+                  <ActivityLog logs={booking.statusLogs} />
                 )}
               </div>
             </div>
