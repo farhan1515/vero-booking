@@ -1,9 +1,12 @@
-import { Info } from "lucide-react"
+import { Info, Loader2, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import type { IcdSuggestion } from "@/types"
 
 interface IcdSuggestionsProps {
   icdSuggestions: string | null | undefined
+  onGenerate?: () => void
+  generating?: boolean
 }
 
 function parseIcd(raw: string | null | undefined): IcdSuggestion[] {
@@ -22,7 +25,7 @@ function confidencePillClass(confidence: number): string {
   return "bg-slate-100 text-slate-600"
 }
 
-export function IcdSuggestions({ icdSuggestions }: IcdSuggestionsProps) {
+export function IcdSuggestions({ icdSuggestions, onGenerate, generating }: IcdSuggestionsProps) {
   const suggestions = parseIcd(icdSuggestions)
 
   return (
@@ -38,7 +41,26 @@ export function IcdSuggestions({ icdSuggestions }: IcdSuggestionsProps) {
       </div>
 
       {suggestions.length === 0 ? (
-        <p className="text-xs text-slate-400">No suggestions available</p>
+        onGenerate ? (
+          <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs text-slate-500">No ICD-10 codes generated yet.</p>
+            <Button
+              size="sm"
+              className="bg-teal-700 text-white hover:bg-teal-800"
+              onClick={onGenerate}
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="mr-1.5 size-3.5" />
+              )}
+              {generating ? "Generating..." : "Generate ICD-10 Codes"}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">No suggestions available</p>
+        )
       ) : (
         <ul className="space-y-2">
           {suggestions.map((s) => (
