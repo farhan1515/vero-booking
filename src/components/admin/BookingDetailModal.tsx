@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Sparkles } from "lucide-react"
+import { Loader2, Mic, Sparkles } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { IcdSuggestions } from "@/components/admin/IcdSuggestions"
 import { InsightsPanel } from "@/components/admin/InsightsPanel"
 import { EvidencePanel } from "@/components/admin/EvidencePanel"
 import { ClinicalChat } from "@/components/admin/ClinicalChat"
+import { EncounterRecorder } from "@/components/admin/EncounterRecorder"
 import { BookingStatus } from "@/types"
 import type { BookingWithDetails } from "@/types"
 import type { ClinicalInsights } from "@/app/api/ai/insights/route"
@@ -26,6 +27,7 @@ interface BookingDetailModalProps {
   booking: BookingWithDetails | null
   onClose: () => void
   onStatusUpdate: () => void
+  onBookingRefresh: (booking: BookingWithDetails) => void
 }
 
 type RightTab = "summary" | "insights" | "evidence" | "chat"
@@ -84,7 +86,7 @@ const RIGHT_TABS: { id: RightTab; label: string }[] = [
   { id: "chat", label: "Chat" },
 ]
 
-export function BookingDetailModal({ booking, onClose, onStatusUpdate }: BookingDetailModalProps) {
+export function BookingDetailModal({ booking, onClose, onStatusUpdate, onBookingRefresh }: BookingDetailModalProps) {
   const [actionLoading, setActionLoading] = useState<BookingStatus | null>(null)
 
   // Summary streaming state
@@ -118,7 +120,12 @@ export function BookingDetailModal({ booking, onClose, onStatusUpdate }: Booking
       const json = await res.json()
       if (json.success) {
         onStatusUpdate()
-        onClose()
+        // Re-fetch so modal shows updated status without closing
+        const detailRes = await fetch(`/api/bookings/${booking.id}`)
+        const detailJson = await detailRes.json()
+        if (detailJson.success) {
+          onBookingRefresh(detailJson.data as BookingWithDetails)
+        }
       }
     } finally {
       setActionLoading(null)
@@ -339,7 +346,12 @@ export function BookingDetailModal({ booking, onClose, onStatusUpdate }: Booking
               </div>
 
               {/* Right column — tabbed AI panel */}
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-4">
+                {/* Encounter recorder — confirmed bookings only */}
+                {booking.status === BookingStatus.CONFIRMED && (
+                  <EncounterRecorder booking={booking} onComplete={onStatusUpdate} />
+                )}
+
                 {/* Tab bar */}
                 <div className="mb-4 flex border-b border-slate-200">
                   {RIGHT_TABS.map((tab) => (
@@ -361,52 +373,77 @@ export function BookingDetailModal({ booking, onClose, onStatusUpdate }: Booking
                 {/* Summary tab */}
                 {rightTab === "summary" && (
                   <div className="space-y-5">
-                    <section>
-                      <div className="mb-3 flex items-center justify-between">
-                        <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
-                          <span className="size-1.5 rounded-full bg-teal-600" />
-                          AI Intake Summary
-                        </h3>
-                        {isStreaming && (
-                          <span className="flex items-center gap-1 text-xs text-teal-600">
-                            <Loader2 className="size-3 animate-spin" />
-                            AI is writing...
-                          </span>
+                    {/* SOAP note takes priority over intake summary */}
+                    {booking.soapNote ? (
+                      <>
+                        <section>
+                          <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
+                            <Mic className="size-3.5" />
+                            SOAP Note (from encounter recording)
+                          </h3>
+                          <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                            {renderSummary(booking.soapNote)}
+                          </div>
+                        </section>
+                        {displaySummary && (
+                          <section>
+                            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                              Pre-visit Intake Summary
+                            </h3>
+                            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                              {renderSummary(displaySummary)}
+                            </div>
+                          </section>
                         )}
-                        {completedAt && (
-                          <span className="text-xs text-slate-400">
-                            Generated at {formatTimestamp(completedAt)}
-                          </span>
-                        )}
-                      </div>
-
-                      {(isStreaming || streamingText) ? (
-                        <div className="min-h-24 rounded-lg border-l-2 border-teal-400 bg-white p-3 shadow-sm ring-1 ring-slate-100">
-                          {renderSummary(streamingText)}
+                      </>
+                    ) : (
+                      <section>
+                        <div className="mb-3 flex items-center justify-between">
+                          <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
+                            <span className="size-1.5 rounded-full bg-teal-600" />
+                            AI Intake Summary
+                          </h3>
                           {isStreaming && (
-                            <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse rounded-sm bg-teal-500" />
+                            <span className="flex items-center gap-1 text-xs text-teal-600">
+                              <Loader2 className="size-3 animate-spin" />
+                              AI is writing...
+                            </span>
+                          )}
+                          {completedAt && (
+                            <span className="text-xs text-slate-400">
+                              Generated at {formatTimestamp(completedAt)}
+                            </span>
                           )}
                         </div>
-                      ) : displaySummary ? (
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                          {renderSummary(displaySummary)}
-                        </div>
-                      ) : showGenerateButton ? (
-                        <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
-                          <p className="text-xs text-slate-500">
-                            No intake summary yet. Generate one using AI based on the patient&apos;s complaint.
-                          </p>
-                          <Button
-                            size="sm"
-                            className="bg-teal-700 text-white hover:bg-teal-800"
-                            onClick={handleGenerateSummary}
-                          >
-                            <Sparkles className="mr-1.5 size-3.5" />
-                            Generate Intake Summary
-                          </Button>
-                        </div>
-                      ) : null}
-                    </section>
+
+                        {(isStreaming || streamingText) ? (
+                          <div className="min-h-24 rounded-lg border-l-2 border-teal-400 bg-white p-3 shadow-sm ring-1 ring-slate-100">
+                            {renderSummary(streamingText)}
+                            {isStreaming && (
+                              <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse rounded-sm bg-teal-500" />
+                            )}
+                          </div>
+                        ) : displaySummary ? (
+                          <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                            {renderSummary(displaySummary)}
+                          </div>
+                        ) : showGenerateButton ? (
+                          <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+                            <p className="text-xs text-slate-500">
+                              No intake summary yet. Generate one using AI based on the patient&apos;s complaint.
+                            </p>
+                            <Button
+                              size="sm"
+                              className="bg-teal-700 text-white hover:bg-teal-800"
+                              onClick={handleGenerateSummary}
+                            >
+                              <Sparkles className="mr-1.5 size-3.5" />
+                              Generate Intake Summary
+                            </Button>
+                          </div>
+                        ) : null}
+                      </section>
+                    )}
 
                     <IcdSuggestions
                       icdSuggestions={localIcdSuggestions ?? booking.icdSuggestions}

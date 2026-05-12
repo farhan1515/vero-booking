@@ -148,6 +148,7 @@ export default function DashboardPage() {
         booking={selectedBooking}
         onClose={() => setSelectedBooking(null)}
         onStatusUpdate={fetchBookings}
+        onBookingRefresh={(updated) => setSelectedBooking(updated)}
       />
     </main>
   )
