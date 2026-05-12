@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { Search } from "lucide-react"
 import { BookingTable } from "@/components/admin/BookingTable"
 import { BookingDetailModal } from "@/components/admin/BookingDetailModal"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [bookings, setBookings] = useState<BookingWithPhysician[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabFilter>("ALL")
+  const [nameSearch, setNameSearch] = useState("")
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -80,8 +82,13 @@ export default function DashboardPage() {
     cancelled: bookings.filter((b) => b.status === BookingStatus.CANCELLED).length,
   }
 
-  const filtered =
-    activeTab === "ALL" ? bookings : bookings.filter((b) => b.status === activeTab)
+  const filtered = bookings
+    .filter((b) => activeTab === "ALL" || b.status === activeTab)
+    .filter((b) =>
+      nameSearch === "" ||
+      b.patientName.toLowerCase().includes(nameSearch.toLowerCase()) ||
+      b.physician.name.toLowerCase().includes(nameSearch.toLowerCase())
+    )
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -130,6 +137,28 @@ export default function DashboardPage() {
             )}
           </button>
         ))}
+      </div>
+
+      {/* Search */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by patient or physician..."
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20"
+          />
+        </div>
+        {nameSearch && (
+          <button
+            onClick={() => setNameSearch("")}
+            className="text-xs text-slate-500 hover:text-slate-700"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {loading ? (
