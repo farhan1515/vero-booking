@@ -1,97 +1,238 @@
 # Vero Booking
 
-> A clinical patient booking system built as a technical work sample for Vero Scribe.
+> A full-stack clinical booking system built as a technical work sample for [Vero Scribe](https://veroscribe.com) — an AI medical documentation startup based in Toronto.
 
-**Live demo:** [https://vero-booking.vercel.app](https://vero-booking.vercel.app)  
-**Admin dashboard:** [https://vero-booking.vercel.app/dashboard](https://vero-booking.vercel.app/dashboard)
+**Live demo:** https://vero-booking.vercel.app  
+**Admin dashboard:** https://vero-booking.vercel.app/dashboard
 
 ---
 
-## Getting Started
+<!--
+  SCREENSHOTS — add these after running the app locally or using the live demo.
+  Recommended tool: macOS Screenshot (Cmd+Shift+4) or Cleanshot X.
+  Save PNGs into /public/screenshots/ and update the paths below.
+  Suggested shots:
+    1. Landing page hero (with animated SOAP card visible)
+    2. Physician browser / booking form
+    3. Confirmation page (animated checkmark)
+    4. Admin dashboard (all bookings, stat cards)
+    5. Booking detail — AI Insights tab
+    6. Booking detail — Encounter Recorder tab (mic button visible)
+-->
+
+<!-- ![Landing page](public/screenshots/landing.png) -->
+<!-- ![Admin dashboard](public/screenshots/dashboard.png) -->
+<!-- ![Encounter recorder](public/screenshots/encounter.png) -->
+
+---
+
+## What This Is
+
+Two flows, one codebase:
+
+**Patient flow** — browse physicians → pick a time slot → fill an intake form → get a confirmation. In the background, the AI pipeline fires immediately: an intake summary (SOAP format), urgency triage (Routine / Priority / Urgent), and ICD-10 code suggestions are generated and persisted before the physician opens the booking.
+
+**Physician flow** — a dashboard showing all bookings with stats, status tabs, and patient search. Each booking opens a detail page with a full AI panel. On confirmed bookings, the physician can record the actual encounter audio, which is transcribed by Whisper and used to generate a final SOAP note — the same loop Vero ships in production.
+
+---
+
+## Feature Tour (Click-by-Click)
+
+Follow this exact path to see every feature working.
+
+### 1. Landing page — `localhost:3000`
+
+- Watch the animated SOAP note card on the right of the hero: it types out a clinical note in real time, adds ICD-10 chips, and loops — built with a pure React phase-state machine, no external animation library.
+- Scroll down to **"From search to clinical note in minutes"** — the three-step timeline animates in on scroll via IntersectionObserver.
+- Scroll to **Find a physician** — filter by name or specialty.
+
+### 2. Book an appointment
+
+1. Click **Book Appointment** on any physician card.
+2. Select any available time slot (grouped by day).
+3. Fill the intake form — use a realistic chief complaint like *"chest tightness and shortness of breath on exertion for 3 days"* to get meaningful AI output.
+4. Submit. You land on the confirmation page — watch the animated SVG checkmark draw itself.
+5. **Copy the booking ID from the URL** — you'll need it for the admin flow.
+
+> AI runs in the background here. By the time you open the booking in the dashboard, the intake summary, urgency level, and ICD-10 codes are already generated.
+
+### 3. Admin dashboard — `localhost:3000/dashboard`
+
+- **Stat cards** at the top show live counts (Total / Pending / Confirmed / Cancelled).
+- **Tab bar** filters by status — click Pending, Confirmed, Cancelled.
+- **Search box** filters by patient name or physician name.
+- Dashboard polls every 30 seconds — leave it open and submit a new booking in another tab to see the count update automatically.
+
+### 4. Booking detail — click any row in the table
+
+The detail page has multiple tabs. Work through them left to right:
+
+| Tab | What it shows |
+|-----|---------------|
+| **Overview** | Patient info, appointment slot, chief complaint, physician details |
+| **AI Insights** | Three sections — *Consider* (differentials), *Ask the Patient* (follow-up questions), *Watch For* (red flags). Click **Generate Insights** to trigger on demand. |
+| **ICD-10** | Top 3 probable codes with confidence scores, colour-coded (green / amber / red). Click **Generate Codes** if not yet generated. |
+| **Evidence** | 3 AI-suggested clinical guidelines with source, one-line relevance summary, and a live PubMed deep-link. Click **Find Evidence**. |
+| **Chat** | Multi-turn streaming chat — ask clinical questions like *"What differentials should I rule out first?"* Every response is grounded in this patient's specific intake. |
+| **Activity Log** | Full audit trail — every status change with actor and timestamp, pulled from `BookingStatusLog`. |
+
+### 5. Encounter Recorder — only on Confirmed bookings
+
+> **This tab only appears after you confirm a booking.** Go back to the dashboard, find your booking, click **Confirm** from the table row quick-actions, then reopen the detail page.
+
+On the **Encounter** tab:
+
+1. Click the **mic button** — your browser will ask for microphone permission, allow it.
+2. Speak a short patient–physician exchange (30–60 seconds). Example:  
+   *"Doctor, I've had chest tightness for three days, worse when I walk upstairs. No fever, no cough. I do have a family history of heart disease."*
+3. Click **Stop** — the audio is sent to OpenAI Whisper for transcription.
+4. The transcript appears, then the SOAP note streams in token by token using the Vercel AI SDK edge route.
+5. Both transcript and SOAP note are saved to the database.
+
+---
+
+## Local Setup
+
+### Prerequisites
+
+- Node.js 18+
+- A [Supabase](https://supabase.com) project (free tier works)
+- An OpenAI API key with access to `gpt-4o-mini` and `whisper-1`
+
+### Steps
 
 ```bash
 git clone https://github.com/farhan1515/vero-booking
 cd vero-booking
+
 cp .env.local.example .env.local
-# Add DATABASE_URL, DIRECT_URL, OPENAI_API_KEY
+```
+
+Edit `.env.local`:
+
+```env
+# Supabase — get both from: Supabase dashboard → Settings → Database → Connection string
+# Use port 6543 (pooled) for DATABASE_URL, port 5432 (direct) for DIRECT_URL
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+
+# OpenAI — https://platform.openai.com/api-keys
+OPENAI_API_KEY="sk-..."
+
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+```bash
 npm install
+
+# Push schema to Supabase
 npx prisma db push
+
+# Seed physicians and time slots
 npx tsx src/server/db/seed.ts
+
+# Start dev server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000).
+
+> **Slots are seeded for 14 days from the current date.** If slots appear unavailable, re-run the seed: `npx tsx src/server/db/seed.ts`.
 
 ---
 
-## What I Built
+## Project Structure
 
-The patient flow lets users browse a list of accepting physicians filtered by name and specialty, select an available time slot grouped by day, and submit a structured intake form (React Hook Form + Zod). On submission the booking is created synchronously and the patient lands on a confirmation screen showing appointment details and status. AI enrichment — intake summary and urgency classification — runs in the background without blocking that response, so the confirmation page is always fast.
-
-The physician dashboard at `/dashboard` shows all bookings with real-time status counts and per-status filtering. Each row is clickable and opens a detail modal with the patient's full intake, appointment info, and a four-tab AI panel. Physicians can confirm or cancel bookings directly from the modal or via quick-action icon buttons in the table, with changes reflected immediately via a 30-second polling loop.
-
-The AI layer is the deliberate centrepiece. It maps directly to Vero's product DNA: streaming intake summaries (SOAP-format, token-by-token via Vercel AI SDK edge routes), clinical insights broken into Consider / Ask the Patient / Watch For sections, ICD-10 code suggestions with confidence scores, evidence-backed references with PubMed deep links, and a multi-turn clinical chat where every response is grounded in the patient's specific intake context. These aren't bolted-on demos — they're the same primitives Vero ships post-encounter, embedded here at the pre-encounter booking layer.
+```
+src/
+├── app/
+│   ├── (patient)/              # Public patient-facing pages
+│   │   ├── page.tsx            # Landing — physician browser + hero animation
+│   │   ├── book/[physicianId]/ # Slot picker + intake form
+│   │   └── confirmation/[id]/  # Booking confirmation page
+│   ├── (admin)/
+│   │   └── dashboard/
+│   │       ├── page.tsx        # Booking table + stats
+│   │       └── bookings/[id]/  # Full booking detail + AI tabs
+│   └── api/
+│       ├── bookings/           # CRUD + status update + encounter save
+│       ├── physicians/         # List + single physician
+│       └── ai/
+│           ├── stream/intake/  # Streaming SOAP intake (edge runtime)
+│           ├── chat/           # Streaming clinical chat (edge runtime)
+│           ├── soap/           # Encounter SOAP from transcript (edge runtime)
+│           ├── icd/            # ICD-10 suggestions
+│           ├── urgency/        # Urgency classification
+│           ├── insights/       # Clinical insights (differentials, questions, red flags)
+│           ├── evidence/       # Evidence references with PubMed links
+│           ├── intake/         # Non-streaming intake (background enrichment)
+│           └── transcribe/     # Whisper audio transcription (Node runtime)
+├── components/
+│   ├── admin/                  # Dashboard components (BookingTable, AI panels, EncounterRecorder)
+│   ├── patient/                # Landing animations, PhysicianCard, IntakeForm, SlotPicker
+│   ├── shared/                 # Navbar, Footer, LoadingSpinner, ErrorBoundary
+│   └── ui/                     # shadcn/ui primitives
+├── server/
+│   ├── services/               # All DB + AI business logic (never imported by client)
+│   │   ├── booking.service.ts
+│   │   ├── physician.service.ts
+│   │   └── ai.service.ts
+│   ├── actions/                # Next.js Server Actions for mutations
+│   └── db/
+│       ├── client.ts           # Prisma singleton
+│       └── seed.ts             # Physician + slot seeder
+├── lib/
+│   ├── validations.ts          # All Zod schemas (forms, API bodies, AI routes)
+│   └── openai.ts               # OpenAI client singleton
+├── types/index.ts              # All shared TypeScript types
+└── config/
+    ├── env.ts                  # Zod-validated env at startup
+    └── site.ts                 # Site constants
+```
 
 ---
 
-## Key Technical Decisions
+## Architecture Notes
 
-**Service layer architecture**  
-All database logic lives in `src/server/services/` — never in route handlers. Routes validate input with Zod, call a service function, and return a typed `ApiResponse<T>`. This keeps business logic testable in isolation and keeps routes thin enough to read at a glance.
+**Service layer** — every database call goes through `src/server/services/`. Route handlers validate with Zod, call a service, return typed `ApiResponse<T>`. Nothing touches Prisma directly from a route.
 
-**Supabase + Prisma over SQLite**  
-A real Postgres database because healthcare data architecture decisions matter even in a prototype. The schema includes soft deletes (`deletedAt`) and a `BookingStatusLog` audit table tracking every status transition with actor and timestamp. These aren't afterthoughts — they're in the initial schema because retrofitting them later is painful.
+**Non-blocking AI** — when a booking is created, the HTTP response returns immediately. Intake summary and urgency classification fire in a `.then().catch()` chain after the response is sent. No patient waits on OpenAI.
 
-**Non-blocking AI processing**  
-When a booking is created, the POST handler returns the confirmation immediately. AI enrichment (intake summary + urgency classification) fires in a `.then().catch()` chain after the response is sent. The dashboard shows AI data as it populates — urgency badges and summaries appear without the patient ever waiting on OpenAI.
+**Streaming** — intake summary and clinical chat stream via `streamText → toTextStreamResponse()` from the Vercel AI SDK. Edge runtime on all streaming routes. Database routes use Node.js runtime. The two never mix — edge routes receive full context in the request body.
 
-**Streaming with Vercel AI SDK**  
-Intake summary generation and clinical chat both stream via server-sent events using AI SDK v6's `streamText → toTextStreamResponse()`. Edge runtime on streaming routes (`/api/ai/stream/intake`, `/api/ai/chat`), Node.js runtime on database routes. The runtimes are not mixed — edge routes receive all context in the request body and never touch Prisma.
+**Audit trail** — every booking status change writes a `BookingStatusLog` row with actor and timestamp. The Activity Log tab surfaces this directly.
 
-**Clinical context in every AI call**  
-Every AI feature receives the patient's specialty, chief complaint, additional notes, and intake summary where available. The chat system prompt injects the full patient record so physician questions get grounded answers rather than generic clinical boilerplate. The insights and evidence prompts include specialty so differential diagnoses and guidelines are domain-appropriate.
+**Slot integrity** — booking creation wraps the slot availability check and booking creation in a Prisma transaction, preventing double-booking under normal load.
 
 ---
 
-## AI Features
+## Tech Stack
 
-- **Streaming Intake Summary** — SOAP-style note generated token by token; saves to DB on stream completion
-- **Urgency Classification** — ROUTINE / PRIORITY / URGENT badge on every booking, set at creation time
-- **Clinical Insights** — Consider, Ask the Patient, and Watch For sections generated per booking on demand
-- **ICD-10 Suggestions** — Top 3 probable codes with confidence scores, colour-coded by confidence band
-- **Evidence Search** — 3 AI-suggested clinical guidelines with source, relevance summary, and PubMed deep links
-- **Clinical Chat** — Multi-turn streaming chat with full patient context injected into every system prompt
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 15 (App Router, Turbopack) |
+| Language | TypeScript — strict, zero `any` |
+| Database | Supabase (Postgres) via Prisma ORM |
+| AI — LLM | OpenAI gpt-4o-mini |
+| AI — Transcription | OpenAI Whisper (`whisper-1`) |
+| AI — Streaming | Vercel AI SDK v4 (`streamText`) |
+| UI | Tailwind CSS v4 + shadcn/ui |
+| Fonts | Manrope (headings) · Inter (body) · Instrument Serif (accent) |
+| Validation | Zod (API bodies + forms) + React Hook Form |
+| Deployment | Vercel |
 
 ---
 
 ## What I Would Add With More Time
 
-**Real authentication** with role-based access (NextAuth.js) — physicians see only their own bookings, admins see all. Right now the dashboard is fully open.
+**Real auth** — NextAuth.js with role-based access. Physicians see only their bookings; admins see all. Right now the dashboard has no auth gate by design for the work sample.
 
-**Audio transcription** using OpenAI Whisper — record a patient encounter and generate the SOAP note automatically, which is exactly what Vero does post-encounter. The intake summary here is a pre-encounter approximation of the same feature.
+**Database-level slot locking** — current transaction prevents most races but not all under high concurrency. A `SELECT FOR UPDATE` row lock on the slot is needed for production.
 
-**Notification system** — email confirmations on booking status change via Resend or Postmark. Patients currently have no channel other than the confirmation page.
+**Email notifications** — Resend or Postmark for booking confirmation, status change, and appointment reminder emails.
 
-**HIPAA audit trail** — every data access logged with user ID, timestamp, and action type. `BookingStatusLog` covers status changes, but reads are untracked. A production system needs row-level access logging.
+**iCal export** — confirmed appointments should drop into the physician's calendar automatically.
 
-**Database-level slot locking** — the current booking creation uses a Prisma transaction but not `SELECT FOR UPDATE`. Under concurrent load, two patients could book the same slot before either transaction completes. A proper advisory lock or row-level lock on the slot is needed.
+**Physician availability UI** — let physicians configure recurring weekly hours instead of the manual seed script.
 
-**Conflict detection** — warn a physician or admin if the patient already has a pending booking before confirming a second one.
-
-**Calendar integration** — iCal export for confirmed appointments so the booking lands in the physician's actual calendar.
-
-**Physician availability management** — a UI for physicians to configure recurring weekly availability instead of the current manual slot seeding script.
-
----
-
-## Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript |
-| Database | Supabase (Postgres) via Prisma |
-| AI | OpenAI gpt-4o-mini + Vercel AI SDK v6 |
-| UI | Tailwind CSS v4 + shadcn/ui (Nova) |
-| Deployment | Vercel |
-| Validation | Zod + React Hook Form |
+**Tests** — integration tests on the booking creation flow and AI service functions. The service-layer architecture makes this straightforward.
