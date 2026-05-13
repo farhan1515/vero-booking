@@ -41,3 +41,13 @@ yarn-error.log*
 next-env.d.ts
 
 /src/lib/generated/prisma
+
+# AI assistant tooling (not part of the product)
+.claude/
+.agents/
+CLAUDE.md
+AGENTS.md
+DESIGN.md
+SKILL.md
+skills-lock.json
+docs/

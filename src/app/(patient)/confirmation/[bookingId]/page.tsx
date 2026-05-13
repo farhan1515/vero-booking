@@ -1,7 +1,8 @@
 import { getBookingById } from "@/server/services/booking.service"
 import Link from "next/link"
-import { Check, Calendar, Clock, User, FileText, Phone } from "lucide-react"
+import { Calendar, Clock, User, FileText, Phone } from "lucide-react"
 import { notFound } from "next/navigation"
+import { ConfirmationCheck } from "@/components/patient/ConfirmationCheck"
 
 interface ConfirmationPageProps {
   params: Promise<{ bookingId: string }>
@@ -36,11 +37,9 @@ export default async function ConfirmationPage({ params }: ConfirmationPageProps
     <main className="mx-auto w-full max-w-lg px-4 py-14 sm:px-6">
       {/* Hero */}
       <div className="mb-8 flex flex-col items-center text-center">
-        <div className="flex size-16 items-center justify-center rounded-full bg-teal-100">
-          <Check className="size-8 text-teal-700" strokeWidth={2.5} />
-        </div>
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">Appointment Requested</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <ConfirmationCheck />
+        <h1 className="mt-4 font-heading text-2xl font-bold text-gray-900">Appointment Requested</h1>
+        <p className="mt-2 text-sm text-gray-500">
           Your request has been submitted and is pending physician review.
         </p>
         <div className="mt-3 flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5">

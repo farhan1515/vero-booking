@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Check, X } from "lucide-react"
 import {
   Table,
@@ -17,26 +18,31 @@ import type { BookingWithPhysician } from "@/types"
 
 interface BookingTableProps {
   bookings: BookingWithPhysician[]
-  onBookingClick: (booking: BookingWithPhysician) => void
   onStatusUpdate: (id: string, status: BookingStatus) => void
 }
 
 function formatSlotDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString("en-CA", {
-    month: "short",
-    day: "numeric",
-  }) + ", " + new Date(date).toLocaleTimeString("en-CA", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
+  return (
+    new Date(date).toLocaleDateString("en-CA", {
+      month: "short",
+      day: "numeric",
+    }) +
+    ", " +
+    new Date(date).toLocaleTimeString("en-CA", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+  )
 }
 
 function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + "…" : str
 }
 
-export function BookingTable({ bookings, onBookingClick, onStatusUpdate }: BookingTableProps) {
+export function BookingTable({ bookings, onStatusUpdate }: BookingTableProps) {
+  const router = useRouter()
+
   if (bookings.length === 0) {
     return (
       <div className="flex min-h-40 items-center justify-center rounded-xl border border-slate-200 bg-white">
@@ -53,7 +59,7 @@ export function BookingTable({ bookings, onBookingClick, onStatusUpdate }: Booki
             <TableHead className="pl-4">Patient</TableHead>
             <TableHead>Physician</TableHead>
             <TableHead>Specialty</TableHead>
-            <TableHead>Date & Time</TableHead>
+            <TableHead>Date &amp; Time</TableHead>
             <TableHead>Chief Complaint</TableHead>
             <TableHead>Urgency</TableHead>
             <TableHead>Status</TableHead>
@@ -65,7 +71,7 @@ export function BookingTable({ bookings, onBookingClick, onStatusUpdate }: Booki
             <TableRow
               key={booking.id}
               className="cursor-pointer hover:bg-slate-50"
-              onClick={() => onBookingClick(booking as BookingWithPhysician)}
+              onClick={() => router.push(`/dashboard/bookings/${booking.id}`)}
             >
               <TableCell className="pl-4">
                 <div>
@@ -79,12 +85,11 @@ export function BookingTable({ bookings, onBookingClick, onStatusUpdate }: Booki
                   {booking.physician.specialty}
                 </span>
               </TableCell>
-              <TableCell className="text-slate-600">{formatSlotDate(booking.slot.startTime)}</TableCell>
+              <TableCell className="text-slate-600">
+                {formatSlotDate(booking.slot.startTime)}
+              </TableCell>
               <TableCell>
-                <span
-                  className="text-slate-600"
-                  title={booking.chiefComplaint}
-                >
+                <span className="text-slate-600" title={booking.chiefComplaint}>
                   {truncate(booking.chiefComplaint, 30)}
                 </span>
               </TableCell>

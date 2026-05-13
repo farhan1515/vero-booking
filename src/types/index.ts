@@ -48,6 +48,9 @@ export interface Booking {
   intakeSummary: string | null
   icdSuggestions: string | null
   aiProcessedAt: Date | null
+  encounterTranscript: string | null
+  soapNote: string | null
+  encounterRecordedAt: Date | null
   deletedAt: Date | null
   createdAt: Date
   updatedAt: Date

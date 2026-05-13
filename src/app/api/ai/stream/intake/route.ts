@@ -1,28 +1,20 @@
 import { streamText } from "ai"
 import { openai } from "@ai-sdk/openai"
+import { streamIntakeBodySchema } from "@/lib/validations"
 import type { ApiResponse } from "@/types"
 
 export const runtime = "edge"
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = await request.json()
-    const {
-      chiefComplaint,
-      additionalNotes,
-      specialty,
-    } = body as {
-      chiefComplaint: string
-      additionalNotes?: string | null
-      specialty: string
-    }
-
-    if (!chiefComplaint || !specialty) {
+    const parsed = streamIntakeBodySchema.safeParse(await request.json())
+    if (!parsed.success) {
       return Response.json(
-        { success: false, data: null, error: "chiefComplaint and specialty are required" } satisfies ApiResponse<null>,
+        { success: false, data: null, error: parsed.error.issues[0]?.message ?? "Invalid request" } satisfies ApiResponse<null>,
         { status: 400 }
       )
     }
+    const { chiefComplaint, additionalNotes, specialty } = parsed.data
 
     const result = streamText({
       model: openai("gpt-4o-mini"),

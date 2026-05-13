@@ -1,5 +1,6 @@
 import { getBookingById } from "@/server/services/booking.service"
 import { openai } from "@/lib/openai"
+import { bookingIdBodySchema } from "@/lib/validations"
 import type { ApiResponse } from "@/types"
 
 export interface ClinicalInsights {
@@ -12,15 +13,14 @@ const EMPTY: ClinicalInsights = { consider: [], questions: [], watchFor: [] }
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = await request.json()
-    const { bookingId } = body as { bookingId: string }
-
-    if (!bookingId) {
+    const parsed = bookingIdBodySchema.safeParse(await request.json())
+    if (!parsed.success) {
       return Response.json(
-        { success: false, data: EMPTY, error: "bookingId is required" } satisfies ApiResponse<ClinicalInsights>,
+        { success: false, data: EMPTY, error: parsed.error.issues[0]?.message ?? "Invalid request" } satisfies ApiResponse<ClinicalInsights>,
         { status: 400 }
       )
     }
+    const { bookingId } = parsed.data
 
     const booking = await getBookingById(bookingId)
     if (!booking) {

@@ -3,10 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Search } from "lucide-react"
 import { BookingTable } from "@/components/admin/BookingTable"
-import { BookingDetailModal } from "@/components/admin/BookingDetailModal"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
 import { BookingStatus } from "@/types"
-import type { BookingWithPhysician, BookingWithDetails } from "@/types"
+import type { BookingWithPhysician } from "@/types"
 import { cn } from "@/lib/utils"
 
 type TabFilter = "ALL" | BookingStatus
@@ -39,32 +38,37 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabFilter>("ALL")
   const [nameSearch, setNameSearch] = useState("")
-  const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const intervalRef    = useRef<ReturnType<typeof setInterval> | null>(null)
+  const intervalCtrlRef = useRef<AbortController | null>(null)
 
-  const fetchBookings = useCallback(async () => {
+  const fetchBookings = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch("/api/bookings")
+      const res = await fetch("/api/bookings", { signal })
       const json = await res.json()
       if (json.success) setBookings(json.data)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchBookings()
-    intervalRef.current = setInterval(fetchBookings, 30_000)
+    const controller = new AbortController()
+    fetchBookings(controller.signal)
+
+    intervalRef.current = setInterval(() => {
+      intervalCtrlRef.current?.abort()
+      intervalCtrlRef.current = new AbortController()
+      fetchBookings(intervalCtrlRef.current.signal)
+    }, 30_000)
+
     return () => {
+      controller.abort()
+      intervalCtrlRef.current?.abort()
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [fetchBookings])
-
-  async function handleRowClick(booking: BookingWithPhysician) {
-    const res = await fetch(`/api/bookings/${booking.id}`)
-    const json = await res.json()
-    if (json.success) setSelectedBooking(json.data as BookingWithDetails)
-  }
 
   async function handleQuickStatus(id: string, status: BookingStatus) {
     await fetch(`/api/bookings/${id}`, {
@@ -84,25 +88,48 @@ export default function DashboardPage() {
 
   const filtered = bookings
     .filter((b) => activeTab === "ALL" || b.status === activeTab)
-    .filter((b) =>
-      nameSearch === "" ||
-      b.patientName.toLowerCase().includes(nameSearch.toLowerCase()) ||
-      b.physician.name.toLowerCase().includes(nameSearch.toLowerCase())
+    .filter(
+      (b) =>
+        nameSearch === "" ||
+        b.patientName.toLowerCase().includes(nameSearch.toLowerCase()) ||
+        b.physician.name.toLowerCase().includes(nameSearch.toLowerCase())
     )
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Physician Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Vero Booking Admin</p>
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-gray-900">
+          Physician Dashboard
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">Vero Booking Admin</p>
       </div>
 
       {/* Stats */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total Bookings" value={counts.total} accentClass="text-slate-800" borderClass="border-l-4 border-l-slate-400" />
-        <StatCard label="Pending" value={counts.pending} accentClass="text-amber-600" borderClass="border-l-4 border-l-amber-400" />
-        <StatCard label="Confirmed" value={counts.confirmed} accentClass="text-green-600" borderClass="border-l-4 border-l-green-500" />
-        <StatCard label="Cancelled" value={counts.cancelled} accentClass="text-red-500" borderClass="border-l-4 border-l-red-400" />
+        <StatCard
+          label="Total Bookings"
+          value={counts.total}
+          accentClass="text-slate-800"
+          borderClass="border-l-4 border-l-slate-400"
+        />
+        <StatCard
+          label="Pending"
+          value={counts.pending}
+          accentClass="text-amber-600"
+          borderClass="border-l-4 border-l-amber-400"
+        />
+        <StatCard
+          label="Confirmed"
+          value={counts.confirmed}
+          accentClass="text-green-600"
+          borderClass="border-l-4 border-l-green-500"
+        />
+        <StatCard
+          label="Cancelled"
+          value={counts.cancelled}
+          accentClass="text-red-500"
+          borderClass="border-l-4 border-l-red-400"
+        />
       </div>
 
       {/* Filter tabs */}
@@ -141,7 +168,7 @@ export default function DashboardPage() {
 
       {/* Search */}
       <div className="mb-4 flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -166,19 +193,8 @@ export default function DashboardPage() {
           <LoadingSpinner size={32} />
         </div>
       ) : (
-        <BookingTable
-          bookings={filtered}
-          onBookingClick={handleRowClick}
-          onStatusUpdate={handleQuickStatus}
-        />
+        <BookingTable bookings={filtered} onStatusUpdate={handleQuickStatus} />
       )}
-
-      <BookingDetailModal
-        booking={selectedBooking}
-        onClose={() => setSelectedBooking(null)}
-        onStatusUpdate={fetchBookings}
-        onBookingRefresh={(updated) => setSelectedBooking(updated)}
-      />
     </main>
   )
 }

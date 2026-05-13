@@ -95,6 +95,20 @@ export async function updateBookingStatus(
   return booking as BookingWithPhysician
 }
 
+export async function updateBookingEncounterData(
+  id: string,
+  data: {
+    encounterTranscript: string
+    soapNote: string
+    encounterRecordedAt: Date
+  }
+) {
+  return db.booking.update({
+    where: { id },
+    data,
+  })
+}
+
 export async function updateBookingAiFields(
   id: string,
   fields: {

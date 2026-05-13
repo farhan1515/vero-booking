@@ -1,18 +1,18 @@
 import { getBookingById, updateBookingAiFields } from "@/server/services/booking.service"
 import { classifyUrgency } from "@/server/services/ai.service"
+import { bookingIdBodySchema } from "@/lib/validations"
 import type { ApiResponse, UrgencyLevel } from "@/types"
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = await request.json()
-    const { bookingId } = body as { bookingId: string }
-
-    if (!bookingId) {
+    const parsed = bookingIdBodySchema.safeParse(await request.json())
+    if (!parsed.success) {
       return Response.json(
-        { success: false, data: null, error: "bookingId is required" } satisfies ApiResponse<null>,
+        { success: false, data: null, error: parsed.error.issues[0]?.message ?? "Invalid request" } satisfies ApiResponse<null>,
         { status: 400 }
       )
     }
+    const { bookingId } = parsed.data
 
     const booking = await getBookingById(bookingId)
     if (!booking) {

@@ -75,6 +75,11 @@ model Booking {
   icdSuggestions  String?   // JSON-stringified ICD10Suggestion[]
   aiProcessedAt   DateTime?
 
+  // Encounter recording (Whisper transcription + SOAP note)
+  encounterTranscript  String?
+  soapNote             String?
+  encounterRecordedAt  DateTime?
+
   // Soft delete
   deletedAt DateTime?
 

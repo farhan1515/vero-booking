@@ -1,29 +1,19 @@
 import { streamText } from "ai"
 import { openai } from "@ai-sdk/openai"
+import { chatBodySchema } from "@/lib/validations"
 
 export const runtime = "edge"
 
-interface BookingContext {
-  patientName: string
-  patientDateOfBirth: string
-  chiefComplaint: string
-  additionalNotes?: string | null
-  specialty: string
-  intakeSummary?: string | null
-}
-
-interface ChatMessage {
-  role: "user" | "assistant"
-  content: string
-}
-
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = await request.json()
-    const { messages, bookingContext } = body as {
-      messages: ChatMessage[]
-      bookingContext: BookingContext
+    const parsed = chatBodySchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: parsed.error.issues[0]?.message ?? "Invalid request" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      )
     }
+    const { messages, bookingContext } = parsed.data
 
     const dob = bookingContext.patientDateOfBirth
       ? new Date(bookingContext.patientDateOfBirth).toLocaleDateString("en-CA", {

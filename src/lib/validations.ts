@@ -26,3 +26,45 @@ export const updateBookingStatusSchema = z.object({
 })
 
 export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
+
+// ── AI route bodies ───────────────────────────────────────────────────────────
+
+export const bookingIdBodySchema = z.object({
+  bookingId: z.string().min(1, "bookingId is required"),
+})
+
+export const soapBodySchema = z.object({
+  transcript: z.string().min(1, "transcript is required"),
+  specialty:  z.string().min(1, "specialty is required"),
+  bookingId:  z.string().min(1, "bookingId is required"),
+})
+
+export const streamIntakeBodySchema = z.object({
+  chiefComplaint:  z.string().min(1, "chiefComplaint is required"),
+  additionalNotes: z.string().nullish(),
+  specialty:       z.string().min(1, "specialty is required"),
+})
+
+export const encounterBodySchema = z.object({
+  encounterTranscript: z.string().min(1, "encounterTranscript is required"),
+  soapNote:            z.string().min(1, "soapNote is required"),
+})
+
+const chatMessageSchema = z.object({
+  role:    z.enum(["user", "assistant"]),
+  content: z.string(),
+})
+
+const bookingContextSchema = z.object({
+  patientName:        z.string(),
+  patientDateOfBirth: z.string(),
+  chiefComplaint:     z.string(),
+  additionalNotes:    z.string().nullish(),
+  specialty:          z.string(),
+  intakeSummary:      z.string().nullish(),
+})
+
+export const chatBodySchema = z.object({
+  messages:       z.array(chatMessageSchema).min(1),
+  bookingContext: bookingContextSchema,
+})
