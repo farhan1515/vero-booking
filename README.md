@@ -3,8 +3,6 @@
 **Live demo:** https://vero-booking.vercel.app  
 **Admin dashboard:** https://vero-booking.vercel.app/dashboard
 
----
-
 <!--
   SCREENSHOTS — add these after running the app locally or using the live demo.
   Recommended tool: macOS Screenshot (Cmd+Shift+4) or Cleanshot X.
@@ -22,8 +20,6 @@
 <!-- ![Admin dashboard](public/screenshots/dashboard.png) -->
 <!-- ![Encounter recorder](public/screenshots/encounter.png) -->
 
----
-
 ## What This Is
 
 Two flows, one codebase:
@@ -31,8 +27,6 @@ Two flows, one codebase:
 **Patient flow** — browse physicians → pick a time slot → fill an intake form → get a confirmation. In the background, the AI pipeline fires immediately: an intake summary (SOAP format), urgency triage (Routine / Priority / Urgent), and ICD-10 code suggestions are generated and persisted before the physician opens the booking.
 
 **Physician flow** — a dashboard showing all bookings with stats, status tabs, and patient search. Each booking opens a detail page with a full AI panel. On confirmed bookings, the physician can record the actual encounter audio, which is transcribed by Whisper and used to generate a final SOAP note — the same loop Vero ships in production.
-
----
 
 ## Feature Tour (Click-by-Click)
 
@@ -50,7 +44,6 @@ Follow this exact path to see every feature working.
 2. Select any available time slot (grouped by day).
 3. Fill the intake form — use a realistic chief complaint like *"chest tightness and shortness of breath on exertion for 3 days"* to get meaningful AI output.
 4. Submit. You land on the confirmation page — watch the animated SVG checkmark draw itself.
-5. **Copy the booking ID from the URL** — you'll need it for the admin flow.
 
 > AI runs in the background here. By the time you open the booking in the dashboard, the intake summary, urgency level, and ICD-10 codes are already generated.
 
@@ -86,8 +79,6 @@ On the **Encounter** tab:
 3. Click **Stop** — the audio is sent to OpenAI Whisper for transcription.
 4. The transcript appears, then the SOAP note streams in token by token using the Vercel AI SDK edge route.
 5. Both transcript and SOAP note are saved to the database.
-
----
 
 ## Local Setup
 
@@ -136,8 +127,6 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 > **Slots are seeded for 14 days from the current date.** If slots appear unavailable, re-run the seed: `npx tsx src/server/db/seed.ts`.
-
----
 
 ## Project Structure
 
@@ -188,8 +177,6 @@ src/
     └── site.ts                 # Site constants
 ```
 
----
-
 ## Architecture Notes
 
 **Service layer** — every database call goes through `src/server/services/`. Route handlers validate with Zod, call a service, return typed `ApiResponse<T>`. Nothing touches Prisma directly from a route.
@@ -201,8 +188,6 @@ src/
 **Audit trail** — every booking status change writes a `BookingStatusLog` row with actor and timestamp. The Activity Log tab surfaces this directly.
 
 **Slot integrity** — booking creation wraps the slot availability check and booking creation in a Prisma transaction, preventing double-booking under normal load.
-
----
 
 ## Tech Stack
 
@@ -218,8 +203,6 @@ src/
 | Fonts | Manrope (headings) · Inter (body) · Instrument Serif (accent) |
 | Validation | Zod (API bodies + forms) + React Hook Form |
 | Deployment | Vercel |
-
----
 
 ## What I Would Add With More Time
 
