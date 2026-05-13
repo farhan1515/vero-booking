@@ -1,7 +1,5 @@
 # Vero Booking
 
-> A full-stack clinical booking system built as a technical work sample for [Vero Scribe](https://veroscribe.com) — an AI medical documentation startup based in Toronto.
-
 **Live demo:** https://vero-booking.vercel.app  
 **Admin dashboard:** https://vero-booking.vercel.app/dashboard
 
