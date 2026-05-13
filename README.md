@@ -3,22 +3,16 @@
 **Live demo:** https://vero-booking.vercel.app  
 **Admin dashboard:** https://vero-booking.vercel.app/dashboard
 
-<!--
-  SCREENSHOTS — add these after running the app locally or using the live demo.
-  Recommended tool: macOS Screenshot (Cmd+Shift+4) or Cleanshot X.
-  Save PNGs into /public/screenshots/ and update the paths below.
-  Suggested shots:
-    1. Landing page hero (with animated SOAP card visible)
-    2. Physician browser / booking form
-    3. Confirmation page (animated checkmark)
-    4. Admin dashboard (all bookings, stat cards)
-    5. Booking detail — AI Insights tab
-    6. Booking detail — Encounter Recorder tab (mic button visible)
--->
 
-<!-- ![Landing page](public/screenshots/landing.png) -->
-<!-- ![Admin dashboard](public/screenshots/dashboard.png) -->
-<!-- ![Encounter recorder](public/screenshots/encounter.png) -->
+## Landing page
+<img width="1433" height="784" alt="image" src="https://github.com/user-attachments/assets/9ee14344-b51f-4788-88d2-a0f4d61849bb" />
+
+## Admin dashboard
+<img width="1427" height="790" alt="image" src="https://github.com/user-attachments/assets/b88f6e77-1a20-4ce8-abeb-a986ebb05da0" />
+
+## Encounter recorder
+<img width="1345" height="792" alt="image" src="https://github.com/user-attachments/assets/3283bf8a-087b-40ae-999d-334521b15950" />
+
 
 ## What This Is
 
@@ -34,15 +28,15 @@ Follow this exact path to see every feature working.
 
 ### 1. Landing page — `localhost:3000`
 
-- Watch the animated SOAP note card on the right of the hero: it types out a clinical note in real time, adds ICD-10 chips, and loops — built with a pure React phase-state machine, no external animation library.
+- Watch the animated SOAP note card on the right of the hero: it types out a clinical note in real time, adds ICD-10 chips, and loops built with a pure React phase-state machine, no external animation library.
 - Scroll down to **"From search to clinical note in minutes"** — the three-step timeline animates in on scroll via IntersectionObserver.
-- Scroll to **Find a physician** — filter by name or specialty.
+- Scroll to **Find a physician** - filter by name or specialty.
 
 ### 2. Book an appointment
 
 1. Click **Book Appointment** on any physician card.
 2. Select any available time slot (grouped by day).
-3. Fill the intake form — use a realistic chief complaint like *"chest tightness and shortness of breath on exertion for 3 days"* to get meaningful AI output.
+3. Fill the intake form - use a realistic chief complaint like *"chest tightness and shortness of breath on exertion for 3 days"* to get meaningful AI output.
 4. Submit. You land on the confirmation page — watch the animated SVG checkmark draw itself.
 
 > AI runs in the background here. By the time you open the booking in the dashboard, the intake summary, urgency level, and ICD-10 codes are already generated.
@@ -50,9 +44,9 @@ Follow this exact path to see every feature working.
 ### 3. Admin dashboard — `localhost:3000/dashboard`
 
 - **Stat cards** at the top show live counts (Total / Pending / Confirmed / Cancelled).
-- **Tab bar** filters by status — click Pending, Confirmed, Cancelled.
+- **Tab bar** filters by status - click Pending, Confirmed, Cancelled.
 - **Search box** filters by patient name or physician name.
-- Dashboard polls every 30 seconds — leave it open and submit a new booking in another tab to see the count update automatically.
+- Dashboard polls every 30 seconds - leave it open and submit a new booking in another tab to see the count update automatically.
 
 ### 4. Booking detail — click any row in the table
 
@@ -216,4 +210,9 @@ src/
 
 **Physician availability UI** — let physicians configure recurring weekly hours instead of the manual seed script.
 
-**Tests** — integration tests on the booking creation flow and AI service functions. The service-layer architecture makes this straightforward.
+**Multimodal encounter context** — extend the existing audio→Whisper→SOAP pipeline to accept 
+  ▎ PDFs, scanned notes, and images alongside audio; parse each source into text (vision model 
+  ▎ for images, extraction for docs), merge into a single context window, and generate the SOAP 
+  ▎ note from the full picture
+
+
